@@ -137,12 +137,17 @@ while True:
     # Collect voices
     voices = sequence.data.keys()
 
+    # Create a list to gather mid messages
+    midi_messages = ()
+
     # Iterate through voices
     for voice in voices:
         # Check to see if this step is active
         if sequence.data[voice][current_step]:
             # Send the note corresponding to the current voice
-            midi.send(NoteOn(voice_notes[voice]))
+            midi_messages.append(NoteOn(voice_notes[voice]))
+    # Send messages
+    midi.send(midi_messages)
 
     if time.monotonic() >= last_tick + bpm_to_ms(bpm):
         leds[current_step] = False

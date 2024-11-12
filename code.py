@@ -125,6 +125,7 @@ voice_notes = {
 last_tick = time.monotonic()
 
 while True:
+    current_tick = time.monotonic()
     # Set current_step to step mod 16
     current_step = step % 16
     # print("on step " + str(step % 16 + 1))
@@ -137,22 +138,27 @@ while True:
     # Collect voices
     voices = sequence.data.keys()
 
-    # Create a list to gather mid messages
-    midi_messages = ()
+    # Create a list to gather midi messages
+    midi_messages_note_on = ()
+    midi_messages_note_off = ()
 
-    # Iterate through voices
-    for voice in voices:
-        # Check to see if this step is active
-        if sequence.data[voice][current_step]:
-            # Send the note corresponding to the current voice
-            midi_messages.append(NoteOn(voice_notes[voice]))
-    # Send messages
-    midi.send(midi_messages)
-
-    if time.monotonic() >= last_tick + bpm_to_ms(bpm):
+    if current_tick >= last_tick + bpm_to_ms(bpm):
+        # On progression to next step, note-off the active notes
+        midi.send(midi_messages_note_off)
         leds[current_step] = False
         step += 1
-        last_tick = time.monotonic()
+        last_tick = current_tick
+        # Send the note-ons for the new step
+        # Iterate through voices
+        for voice in voices:
+            # Check to see if this step is active
+            if sequence.data[voice][current_step]:
+                # Send the note corresponding to the current voice
+                midi_messages_note_on.append(NoteOn(voice_notes[voice]))
+                # Pre-generate note-offs to send on progression to next step
+                midi_messages_note_off.append(NoteOff(voice_notes[voice]))
+        # Send note-on messages
+        midi.send(midi_messages_note_on)
 
     event = keys.events.get()
     if event:
